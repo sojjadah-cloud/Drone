@@ -1,0 +1,8 @@
+node_modules
+dist
+# local database and uploaded files
+server/data
+# local editor / agent settings
+.claude
+*.log
+.env

@@ -1,0 +1,199 @@
+@import 'tailwindcss';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* ============================================================================
+   FIREGUARD design tokens
+   Two themes share one semantic vocabulary:
+   - default  : institutional light (public portal)
+   - .theme-ops : operations workspace (light, green used only as accent)
+   Green + gold palette inspired by the Omani institutional style; these are
+   FIREGUARD values, not official CDAA brand assets. No official logo is used.
+   ========================================================================== */
+:root {
+  /* brand primitives: pine green (from #005041) + calligraphy gold */
+  --pine-950: #00261d;
+  --pine-900: #003a2c;
+  --pine-800: #00473a;
+  --pine-700: #005041;
+  --pine-600: #0b6352;
+  --pine-500: #2c6152;
+  --red-700: #8f1d28;
+  --red-600: #b32632;
+  --red-500: #dc3545;
+  --gold-500: #c9a24d;
+  --gold-300: #e6cf98;
+  --amber-500: #e5a23b;
+
+  /* semantic: light */
+  --canvas: #f4f6f5;
+  --surface: #ffffff;
+  --surface-2: #f8faf9;
+  --surface-hover: #eef3f1;
+  --surface-selected: #e3efea;
+  --line: #dde6e2;
+  --line-strong: #c3d1cb;
+  --ink: #0e2a23;
+  --ink-muted: #44594f;
+  --ink-subtle: #63766e;
+  --ink-inverse: #ffffff;
+  --brand: #005041;
+  --brand-hover: #00634f;
+  --on-brand: #ffffff;
+  --alert: #b32632;
+  --alert-hover: #981f2a;
+  --on-alert: #ffffff;
+  --gold: #8c6a1e; /* darkened gold for text contrast on light */
+  --gold-fill: #c9a24d;
+  --ok: #1d7a4a;
+  --ok-soft: #e4f3ea;
+  --warn: #9a6408;
+  --warn-soft: #fcf1de;
+  --crit: #b32632;
+  --crit-soft: #fbe9ea;
+  --info: #1f5f8b;
+  --info-soft: #e5f0f8;
+  --neutral-soft: #edf1ef;
+  --focus: #b8862a;
+  --disabled-bg: #ebefed;
+  --disabled-ink: #98a8a1;
+  --shadow-1: 0 1px 2px rgb(0 58 44 / 0.06), 0 1px 1px rgb(0 58 44 / 0.04);
+  --shadow-2: 0 8px 24px rgb(0 58 44 / 0.10), 0 2px 6px rgb(0 58 44 / 0.06);
+  --overlay: rgb(0 38 29 / 0.55);
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --font-ar: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+  --font-en: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --dur-fast: 150ms;
+  --dur: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  color-scheme: light;
+}
+
+.theme-ops {
+  /* Operations area: light, calm workspace. Green is reserved for actions and the active item. */
+  --canvas: #f3f5f4;
+  --surface-selected: #e4f0eb;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-selected: var(--surface-selected);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-alert: var(--alert);
+  --color-alert-hover: var(--alert-hover);
+  --color-on-alert: var(--on-alert);
+  --color-gold: var(--gold);
+  --color-gold-fill: var(--gold-fill);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-focus: var(--focus);
+  --color-disabled: var(--disabled-bg);
+  --color-disabled-ink: var(--disabled-ink);
+  --color-pine-950: #00261d; /* deepest: footer, overlays */
+  --color-pine-900: #005041; /* brand green (sampled reference) */
+  --color-pine-800: #003a2c;
+  --color-pine-700: #0b6352;
+  --color-pine-600: #1f4c40;
+  --color-red-600: #b32632;
+  --color-gold-500: #c9a24d;
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+}
+
+html[lang='ar'] { --font-ui: var(--font-ar); }
+html[lang='en'] { --font-ui: var(--font-en); }
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html[lang='ar'] body { line-height: 1.7; }
+
+/* Numbers, codes and telemetry always use Latin digits with tabular figures. */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; font-family: var(--font-en); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+[dir='rtl'] .num, [dir='rtl'] .mono { unicode-bidi: isolate; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+::selection { background: color-mix(in srgb, var(--gold-fill) 35%, transparent); }
+
+/* Scrollbars in ops mode */
+.theme-ops ::-webkit-scrollbar { width: 10px; height: 10px; }
+.theme-ops ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; border: 2px solid var(--surface); }
+.theme-ops ::-webkit-scrollbar-track { background: transparent; }
+
+/* Accessible visually-hidden */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Skeleton */
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-hover) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite linear; border-radius: var(--radius-sm); }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Status pulse for live / critical indicators (disabled with reduced motion) */
+.pulse-dot { position: relative; }
+.pulse-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 999px; border: 2px solid currentColor; opacity: 0; animation: pulse 2s infinite var(--ease); }
+@keyframes pulse { 0% { opacity: .6; transform: scale(.7); } 100% { opacity: 0; transform: scale(1.6); } }
+
+.fade-in { animation: fadeIn var(--dur) var(--ease); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.slide-in { animation: slideIn var(--dur) var(--ease); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(var(--slide-from, 12px)); } to { opacity: 1; transform: none; } }
+[dir='rtl'] .slide-in { --slide-from: -12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+/* MapLibre: theme controls to match */
+.maplibregl-ctrl-group { background: var(--surface) !important; border: 1px solid var(--line); box-shadow: var(--shadow-1) !important; }
+.maplibregl-ctrl-group button { width: 34px !important; height: 34px !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--line) !important; }
+.maplibregl-ctrl-attrib { font-size: 10px; background: color-mix(in srgb, var(--surface) 80%, transparent) !important; color: var(--ink-subtle); }
+.maplibregl-ctrl-attrib a { color: var(--ink-muted) !important; }
+.fg-marker { cursor: pointer; }
+.fg-marker:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 999px; }
+
+/* Topographic line texture used in hero / empty map states */
+.topo-bg {
+  background-color: #003a2c;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.06' stroke-width='1'%3E%3Cpath d='M-20 120 C 80 60 180 160 300 110 S 520 40 640 120'/%3E%3Cpath d='M-20 160 C 90 100 190 200 300 150 S 520 80 640 160'/%3E%3Cpath d='M-20 200 C 100 140 200 240 300 190 S 520 120 640 200'/%3E%3Cpath d='M-20 260 C 110 200 210 300 310 250 S 520 180 640 260'/%3E%3Cpath d='M-20 330 C 120 270 220 370 320 320 S 520 250 640 330'/%3E%3Cpath d='M-20 400 C 130 340 230 440 330 390 S 520 320 640 400'/%3E%3Cpath d='M-20 470 C 140 410 240 510 340 460 S 520 390 640 470'/%3E%3Cpath d='M-20 540 C 150 480 250 580 350 530 S 520 460 640 540'/%3E%3Cellipse cx='440' cy='300' rx='60' ry='36'/%3E%3Cellipse cx='440' cy='300' rx='100' ry='62'/%3E%3Cellipse cx='440' cy='300' rx='140' ry='90'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 85% 0%, rgb(201 162 77 / 0.10) 0%, transparent 55%),
+    linear-gradient(180deg, #005041 0%, #003a2c 100%);
+  background-size: 600px 600px, 100% 100%, 100% 100%;
+}
+.pulse-ring { animation: pulse 2s infinite var(--ease); }
