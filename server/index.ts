@@ -1,51 +1,45 @@
-import express from 'express';
-import type { NextFunction, Request, Response } from 'express';
+// Local server for development and self-hosting: same handler as the Netlify Function,
+// with state kept in a JSON file. Also serves the built site from dist/ when present.
 import { createServer } from 'node:http';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, createReadStream } from 'node:fs';
+import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedIfEmpty } from './seed.ts';
-import { securityHeaders, sessionMiddleware, ValidationError } from './security.ts';
-import { Simulator } from './simulator.ts';
-import { buildAdapters } from './adapters.ts';
-import { buildRouter } from './routes.ts';
-import { attachRealtime } from './realtime.ts';
-import { buildCampusRouter, CampusFleet } from './campus.ts';
-import { MulterError } from 'multer';
+import { handle } from './handler.ts';
+import type { State } from '../shared/campus.ts';
 
-const PORT = Number(process.env.PORT ?? 8787);
 const here = dirname(fileURLToPath(import.meta.url));
+const DATA = process.env.RESQAIR_DATA_DIR ?? join(here, 'data');
+const FILE = join(DATA, 'resqair.json');
+const DIST = join(here, '..', 'dist');
+const PORT = Number(process.env.PORT ?? 8787);
+mkdirSync(DATA, { recursive: true });
 
-if (seedIfEmpty()) console.log('[fireguard] demo dataset seeded');
+const store = {
+  load: async (): Promise<State | null> => (existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : null),
+  save: async (s: State) => {
+    writeFileSync(FILE + '.tmp', JSON.stringify(s));
+    renameSync(FILE + '.tmp', FILE);
+  },
+};
 
-const sim = new Simulator();
-const adapters = buildAdapters(sim);
-const app = express();
-app.disable('x-powered-by');
-app.set('trust proxy', 'loopback');
-app.use(securityHeaders);
-app.use(express.json({ limit: '64kb' }));
-app.use(sessionMiddleware);
-app.use('/api/campus', buildCampusRouter(new CampusFleet()));
-app.use('/api', buildRouter(sim, adapters));
-app.use('/api', (_req, res) => res.status(404).json({ error: 'not_found' }));
+const MIME: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
 
-// Serve built client in production
-const dist = join(here, '..', 'dist');
-if (existsSync(dist)) {
-  app.use(express.static(dist, { index: false, maxAge: '1h' }));
-  app.get('*', (_req, res) => res.sendFile(join(dist, 'index.html')));
-}
-
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof ValidationError) return res.status(422).json({ error: 'validation', field: err.field, reason: err.message });
-  if (err instanceof MulterError) return res.status(413).json({ error: 'upload', reason: err.code });
-  if (err instanceof SyntaxError) return res.status(400).json({ error: 'bad_json' });
-  console.error(err);
-  res.status(500).json({ error: 'internal' });
-});
-
-const server = createServer(app);
-attachRealtime(server, () => sim.state);
-sim.start();
-server.listen(PORT, () => console.log(`[fireguard] API listening on http://localhost:${PORT}`));
+createServer(async (req, res) => {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+  if (url.pathname.startsWith('/api/')) {
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const headers = new Headers();
+    for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') headers.set(k, v);
+    headers.set('x-forwarded-for', req.socket.remoteAddress ?? 'local');
+    const r = await handle(new Request(url, { method: req.method, headers, body: chunks.length ? Buffer.concat(chunks) : undefined }), store);
+    res.writeHead(r.status, Object.fromEntries(r.headers));
+    return res.end(Buffer.from(await r.arrayBuffer()));
+  }
+  // static site (production build)
+  const p = normalize(join(DIST, decodeURIComponent(url.pathname)));
+  const file = p.startsWith(DIST) && existsSync(p) && extname(p) ? p : join(DIST, 'index.html');
+  if (!existsSync(file)) return res.writeHead(404).end('Run "npm run build" first, or use "npm run dev".');
+  res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream', 'x-content-type-options': 'nosniff' });
+  createReadStream(file).pipe(res);
+}).listen(PORT, () => console.log(`[resqair] http://localhost:${PORT}`));

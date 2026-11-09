@@ -1,0 +1,17 @@
+# ResQAir on Netlify: static site from dist/, API as a Netlify Function, data in Netlify Blobs.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Single-page app: every non-file, non-API path serves index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

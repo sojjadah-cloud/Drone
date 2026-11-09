@@ -1,37 +1,29 @@
 {
-  "name": "fireguard",
+  "name": "resqair",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n api,web -c red,blue \"npm:dev:api\" \"npm:dev:web\"",
-    "dev:api": "node --watch --disable-warning=ExperimentalWarning server/index.ts",
+    "dev:api": "node --watch server/index.ts",
     "dev:web": "vite",
     "build": "tsc -p tsconfig.json && vite build",
-    "start": "node --disable-warning=ExperimentalWarning server/index.ts",
-    "typecheck": "tsc -p tsconfig.json",
-    "seed:reset": "node --disable-warning=ExperimentalWarning server/reset.ts"
+    "start": "node server/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "express": "^4.22.3",
+    "@netlify/blobs": "^11.1.8",
     "lucide-react": "^1.70.0",
     "maplibre-gl": "^6.16.0",
-    "multer": "^2.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.6",
-    "recharts": "^3.10.1",
-    "ws": "^8.22.1",
-    "zustand": "^5.1.0"
+    "react-router-dom": "^6.30.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",
-    "@types/express": "^4.17.25",
-    "@types/multer": "^2.3.0",
     "@types/node": "^26.6.6",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
-    "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^10.0.6",
     "tailwindcss": "^4.3.5",

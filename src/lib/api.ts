@@ -1,130 +1,60 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { create } from 'zustand';
-import type { Permission, UserDTO } from '@shared/domain';
+import { useSyncExternalStore } from 'react';
 
 export class ApiError extends Error {
   status: number;
   code: string;
-  body: any;
-  constructor(status: number, body: any) {
-    super(body?.error ?? `http_${status}`);
+  constructor(status: number, code: string) {
+    super(code);
     this.status = status;
-    this.code = body?.error ?? (status === 0 ? 'network' : 'internal');
-    this.body = body;
+    this.code = code;
   }
 }
 
-interface AuthState {
-  user: UserDTO | null;
-  csrf: string | null;
-  permissions: Permission[];
-  checked: boolean;
-  set: (s: Partial<AuthState>) => void;
-}
-export const useAuth = create<AuthState>((set) => ({
-  user: null,
-  csrf: null,
-  permissions: [],
-  checked: false,
-  set: (s) => set(s),
-}));
-export const useCan = () => {
-  const perms = useAuth((s) => s.permissions);
-  return (p: Permission) => perms.includes(p);
+// Pilot session token (signed by the server, 12 h). Kept per browser tab.
+const KEY = 'resqair.token';
+const listeners = new Set<() => void>();
+const read = () => {
+  try {
+    const t = sessionStorage.getItem(KEY);
+    return t && Number(t.split('.')[0]) > Date.now() ? t : null;
+  } catch {
+    return null;
+  }
 };
+export function setToken(t: string | null) {
+  try {
+    if (t) sessionStorage.setItem(KEY, t);
+    else sessionStorage.removeItem(KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  listeners.forEach((f) => f());
+}
+export const useToken = () =>
+  useSyncExternalStore((cb) => (listeners.add(cb), () => listeners.delete(cb)), read, () => null);
 
-export async function api<T = any>(path: string, opts: { method?: string; body?: unknown; form?: FormData; headers?: Record<string, string> } = {}): Promise<T> {
-  const headers: Record<string, string> = { ...opts.headers };
-  const method = opts.method ?? (opts.body || opts.form ? 'POST' : 'GET');
-  if (opts.body !== undefined) headers['content-type'] = 'application/json';
-  const csrf = useAuth.getState().csrf;
-  if (csrf && method !== 'GET') headers['x-csrf-token'] = csrf;
+export async function api<T = any>(path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const t = read();
+  if (t) headers.authorization = `Bearer ${t}`;
   let res: Response;
   try {
-    res = await fetch(`/api${path}`, {
-      method,
-      headers,
-      credentials: 'same-origin',
-      body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
-    });
+    res = await fetch(`/api${path}`, { method: body !== undefined ? 'POST' : 'GET', headers, body: body !== undefined ? JSON.stringify(body) : undefined });
   } catch {
-    throw new ApiError(0, { error: 'network' });
+    throw new ApiError(0, 'network');
   }
   const text = await res.text();
-  let body: any = null;
+  let data: any = null;
   try {
-    body = text ? JSON.parse(text) : null;
+    data = text ? JSON.parse(text) : null;
   } catch {
-    body = { error: 'internal' };
+    // Non-JSON (e.g. a static host's 404 page) means the API is not deployed.
+    throw new ApiError(res.status, res.ok ? 'internal' : 'api_unavailable');
   }
   if (!res.ok) {
-    if (res.status === 401 && useAuth.getState().user) useAuth.getState().set({ user: null, csrf: null, permissions: [] });
-    throw new ApiError(res.status, body);
+    if (res.status === 401 && t) setToken(null);
+    throw new ApiError(res.status, data?.error ?? 'internal');
   }
-  return body as T;
-}
-
-// -----------------------------------------------------------------------------
-// Tiny invalidation bus: realtime messages invalidate topics, queries refetch.
-// -----------------------------------------------------------------------------
-type Topic = 'incidents' | 'reports' | 'missions' | 'drones' | 'assessments' | 'suppressions' | 'notifications' | 'users' | 'simulator';
-const listeners = new Map<Topic, Set<() => void>>();
-export function invalidate(...topics: Topic[]) {
-  for (const t of topics) listeners.get(t)?.forEach((f) => f());
-}
-function subscribe(topics: Topic[], fn: () => void) {
-  for (const t of topics) {
-    if (!listeners.has(t)) listeners.set(t, new Set());
-    listeners.get(t)!.add(fn);
-  }
-  return () => topics.forEach((t) => listeners.get(t)?.delete(fn));
-}
-
-export function useQuery<T>(path: string | null, topics: Topic[] = [], { throttleMs = 600 } = {}) {
-  const [data, setData] = useState<T | undefined>(undefined);
-  const [error, setError] = useState<ApiError | null>(null);
-  const [loading, setLoading] = useState(!!path);
-  const pathRef = useRef(path);
-  pathRef.current = path;
-  const timer = useRef<number | null>(null);
-
-  const load = useCallback(async () => {
-    const p = pathRef.current;
-    if (!p) return;
-    try {
-      const d = await api<T>(p);
-      if (pathRef.current === p) {
-        setData(d);
-        setError(null);
-      }
-    } catch (e) {
-      if (pathRef.current === p) setError(e as ApiError);
-    } finally {
-      if (pathRef.current === p) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!path) {
-      setData(undefined);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    load();
-  }, [path, load]);
-
-  const topicKey = topics.join(',');
-  useEffect(() => {
-    if (!topicKey) return;
-    return subscribe(topicKey.split(',') as Topic[], () => {
-      if (timer.current) return;
-      timer.current = window.setTimeout(() => {
-        timer.current = null;
-        load();
-      }, throttleMs);
-    });
-  }, [topicKey, load, throttleMs]);
-
-  return { data, error, loading: loading && data === undefined, refetch: load, setData };
+  return data as T;
 }

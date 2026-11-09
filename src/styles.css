@@ -197,3 +197,19 @@ html[lang='ar'] body { line-height: 1.7; }
   background-size: 600px 600px, 100% 100%, 100% 100%;
 }
 .pulse-ring { animation: pulse 2s infinite var(--ease); }
+
+/* ResQAir map markers */
+.rq-marker { background: none; border: 0; padding: 0; cursor: pointer; }
+.rq-drone { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.rq-drone-icon { filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.5)); }
+.rq-drone-tag { font: 700 10px/14px Inter, sans-serif; color: #fff; background: rgb(11 42 34 / 0.85); padding: 0 5px; border-radius: 4px; }
+.rq-station { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rq-station-name { font: 700 11px/16px 'IBM Plex Sans Arabic', Inter, sans-serif; color: #fff; background: #005041; border: 1px solid #c9a24d; padding: 1px 8px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); }
+.rq-station-pad { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: rgb(0 38 29 / 0.88); border: 1.5px solid #c9a24d; box-shadow: 0 3px 10px rgb(0 0 0 / 0.4); }
+.rq-slot { position: relative; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: rgb(255 255 255 / 0.08); }
+.rq-slot[data-state='charging'] { opacity: 0.5; }
+.rq-slot[data-state='charging']::after { content: ''; position: absolute; inset: auto 3px 2px; height: 2px; border-radius: 2px; background: #f2b72f; }
+.rq-slot[data-state='away'] { border: 1.5px dashed var(--c); opacity: 0.6; }
+.rq-fire { position: relative; display: grid; place-items: center; }
+.rq-fire-ring { position: absolute; inset: -9px; border-radius: 999px; border: 2px solid #ff5a5a; animation: rq-ring 1.8s infinite var(--ease); }
+@keyframes rq-ring { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(1.5); opacity: 0; } }
